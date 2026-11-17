@@ -5,12 +5,20 @@ namespace Tests\Feature;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Member;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class LibraryCrudTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+    }
 
     public function test_categories_can_be_created_updated_and_deleted(): void
     {

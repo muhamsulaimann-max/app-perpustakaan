@@ -22,6 +22,7 @@ class LoanRelationshipsTest extends TestCase
         $member = $this->createMember();
         $user = User::factory()->create(['name' => 'Petugas']);
         $loan = $this->createLoan($member, $user, [$book]);
+        $this->actingAs($user);
 
         $this->assertTrue($book->category->is($category));
         $this->assertTrue($category->books->contains($book));
@@ -55,18 +56,19 @@ class LoanRelationshipsTest extends TestCase
         $firstBook = $this->createBook($category, 'Fisika Dasar');
         $secondBook = $this->createBook($category, 'Kimia Dasar');
         $member = $this->createMember();
-        $user = User::factory()->create(['name' => 'Petugas Uji']);
+        $user = User::factory()->create(['name' => 'Petugas Uji', 'role' => 'petugas']);
+        $this->actingAs($user);
 
         $this->get(route('loans.create'))
             ->assertOk()
             ->assertSee('Anggota Uji')
             ->assertSee('Petugas Uji')
+            ->assertDontSee('name="user_id"', false)
             ->assertSee('Fisika Dasar')
             ->assertSee('Kimia Dasar');
 
         $this->post(route('loans.store'), [
             'member_id' => $member->id,
-            'user_id' => $user->id,
             'tanggal_pinjam' => '2026-11-12',
             'tanggal_kembali' => '2026-11-19',
             'book_ids' => [$firstBook->id, $secondBook->id],
@@ -74,6 +76,7 @@ class LoanRelationshipsTest extends TestCase
             ->assertSessionHas('success');
 
         $loan = Loan::with('loanItems')->firstOrFail();
+        $this->assertSame($user->id, $loan->user_id);
         $this->assertDatabaseCount('loan_items', 2);
 
         $this->get(route('loans.index'))
@@ -118,14 +121,14 @@ class LoanRelationshipsTest extends TestCase
     public function test_loan_validation_requires_existing_people_and_books_and_valid_dates(): void
     {
         $member = $this->createMember();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'petugas']);
+        $this->actingAs($user);
         $category = Category::create(['nama_kategori' => 'Sejarah']);
         $book = $this->createBook($category, 'Sejarah Indonesia');
 
         $this->from(route('loans.create'))
             ->post(route('loans.store'), [
                 'member_id' => $member->id,
-                'user_id' => $user->id,
                 'tanggal_pinjam' => '2026-11-12',
                 'tanggal_kembali' => '2026-11-11',
                 'book_ids' => [],
@@ -136,13 +139,12 @@ class LoanRelationshipsTest extends TestCase
         $this->from(route('loans.create'))
             ->post(route('loans.store'), [
                 'member_id' => 999,
-                'user_id' => 999,
                 'tanggal_pinjam' => '2026-11-12',
                 'tanggal_kembali' => '2026-11-19',
                 'book_ids' => [$book->id, 999],
             ])
             ->assertRedirect(route('loans.create'))
-            ->assertSessionHasErrors(['member_id', 'user_id', 'book_ids.1']);
+            ->assertSessionHasErrors(['member_id', 'book_ids.1']);
 
         $this->assertDatabaseCount('loans', 0);
         $this->assertDatabaseCount('loan_items', 0);
