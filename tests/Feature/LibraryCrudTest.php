@@ -73,11 +73,13 @@ class LibraryCrudTest extends TestCase
         $this->get(route('books.index'))
             ->assertOk()
             ->assertSee('Clean Code')
-            ->assertSee('ID Kategori');
+            ->assertSee('Teknologi')
+            ->assertDontSee('ID Kategori');
 
         $this->get(route('books.show', $book))
             ->assertOk()
-            ->assertSee((string) $category->id);
+            ->assertSee('Teknologi')
+            ->assertDontSee('ID Kategori');
 
         $this->get(route('books.edit', $book))
             ->assertOk()
