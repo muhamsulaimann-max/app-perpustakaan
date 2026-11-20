@@ -38,7 +38,7 @@ class AuthenticationMiddlewareTest extends TestCase
             'email' => 'petugas@example.test',
             'password' => 'password',
             'remember' => 'on',
-        ])->assertRedirect(route('books.index'))
+        ])->assertRedirect(route('dashboard'))
             ->assertSessionHas('success');
 
         $this->assertAuthenticatedAs($user);
@@ -78,12 +78,12 @@ class AuthenticationMiddlewareTest extends TestCase
         $this->assertDatabaseCount('users', 3);
         $this->assertDatabaseHas('users', [
             'email' => 'admin@pens.ac.id',
-            'name' => 'Admin Perpustakaan',
+            'name' => 'Bambang Sutrisno',
             'role' => 'admin',
         ]);
         $this->assertDatabaseHas('users', [
             'email' => 'petugas1@pens.ac.id',
-            'name' => 'Petugas Satu',
+            'name' => 'Siti Rahmawati',
             'role' => 'petugas',
         ]);
 

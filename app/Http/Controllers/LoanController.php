@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\Loan;
 use App\Models\Member;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class LoanController extends Controller
 {
@@ -15,6 +18,38 @@ class LoanController extends Controller
         $loans = Loan::with(['member', 'user', 'loanItems.book'])->paginate(10);
 
         return view('loans.index', compact('loans'));
+    }
+
+    public function report(Request $request)
+    {
+        $loans = [];
+        $meta = null;
+        $apiAvailable = false;
+
+        try {
+            $response = Http::acceptJson()
+                ->timeout(3)
+                ->get(config('services.internal_api.base_url').'/api/loans', [
+                    'page' => $request->query('page', 1),
+                ]);
+
+            $body = $response->json();
+            if ($response->successful() && is_array($body) && isset($body['data']) && is_array($body['data'])) {
+                $loans = $body['data'];
+                $meta = isset($body['meta']) && is_array($body['meta']) ? $body['meta'] : null;
+                $apiAvailable = true;
+            } else {
+                Log::warning('Internal loans API returned an unsuccessful or invalid response.', [
+                    'status' => $response->status(),
+                ]);
+            }
+        } catch (ConnectionException $exception) {
+            Log::warning('Internal loans API could not be reached.', [
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+
+        return view('loans.report', compact('loans', 'meta', 'apiAvailable'));
     }
 
     public function create()
